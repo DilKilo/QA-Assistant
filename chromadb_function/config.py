@@ -23,11 +23,10 @@ CONFLUENCE_SPACE = "QD"
 EXCLUDE_PAGES_IDS = ['2639986781', '2695463266', '2710208755', '2760704026']
 
 # Chunking settings
-CHUNK_TOKEN_LIMIT = 256
-COUNT_BY_TEXT = True
 KEEP_TAGS = {"table", "tr", "td", "th", "h1", "h2", "h3", "h4",
              "h5", "h6", "a", "ol", "ul", "li", 'ac:link', "ri:user", "ri:page"}
 OVERLAP = 0.0
+VECTOR_DIMENSIONS = 1024
 
 
 # Vertex AI

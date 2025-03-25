@@ -46,7 +46,7 @@ def event_handler(cloud_event):
         exclude_roots=config.EXCLUDE_PAGES_IDS
     )
 
-    pages = confluence_client.get_pages_content(page_ids)
+    pages = confluence_client.get_pages_content(page_ids=page_ids)
 
     print(f'Fetcting completed\nNumber of pages: {len(pages)}')
 
@@ -58,14 +58,14 @@ def event_handler(cloud_event):
     )
     embedder = VertexAIChromaEmbedder(
         model_name=config.VERTEXAI_MODEL_NAME,
-        task_type=config.VERTEXAI_TASK_TYPE
+        task_type=config.VERTEXAI_TASK_TYPE,
+        dimensions=config.VECTOR_DIMENSIONS
     )
 
     html_processor = HtmlProcessor(
         confluence_client=confluence_client,
         tokenizer=tokenizer,
-        chunk_token_limit=config.CHUNK_TOKEN_LIMIT,
-        count_by_text=config.COUNT_BY_TEXT,
+        chunk_token_limit=config.VECTOR_DIMENSIONS,
         overlap=config.OVERLAP
     )
 
