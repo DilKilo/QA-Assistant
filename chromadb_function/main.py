@@ -22,35 +22,16 @@ def event_handler(cloud_event):
         backup_storage_name=config.BACKUP_STORAGE_NAME
     )
 
-    print("Starting backup...")
-
-    backup_result = backup_client.backup(backups_number=config.BACKUPS_NUMBER)
-
-    print(backup_result['message'])
-
     confluence_client = Confluence(
         url=config.CONFLUENCE_URL,
         username=config.CONFLUENCE_USERNAME,
         password=config.CONFLUENCE_PASSWORD
     )
 
-    confluence_client = ConfluenceFetcher(
+    confluence_fetcher = ConfluenceFetcher(
         confluence_client=confluence_client,
         max_workers=config.MAX_WORKERS
     )
-
-    print("Fetching pages...")
-
-    page_ids = confluence_client.get_all_space_pages(
-        space=config.CONFLUENCE_SPACE,
-        exclude_roots=config.EXCLUDE_PAGES_IDS
-    )
-
-    pages = confluence_client.get_pages_content(page_ids=page_ids)
-
-    print(f'Fetcting completed\nNumber of pages: {len(pages)}')
-
-    print("Processing pages...")
 
     tokenizer = VertexAITokenizer(
         model_name=config.VERTEXAI_MODEL_NAME,
@@ -62,6 +43,12 @@ def event_handler(cloud_event):
         dimensions=config.VECTOR_DIMENSIONS
     )
 
+    chroma_client = ChromaClient(
+        chroma_host=config.CHROMA_HOST,
+        chroma_port=config.CHROMA_PORT,
+        embedder=embedder
+    )
+
     html_processor = HtmlProcessor(
         confluence_client=confluence_client,
         tokenizer=tokenizer,
@@ -69,18 +56,32 @@ def event_handler(cloud_event):
         overlap=config.OVERLAP
     )
 
-    documents, metadatas, empty_pages = html_processor.process_pages(pages)
+    print("Starting backup...")
+
+    backup_result = backup_client.backup(backups_number=config.BACKUPS_NUMBER)
+
+    print(backup_result['message'])
+
+    print("Fetching pages...")
+
+    page_ids = confluence_fetcher.get_all_space_pages(
+        space=config.CONFLUENCE_SPACE,
+        exclude_roots=config.EXCLUDE_PAGES_IDS
+    )
+
+    pages = confluence_fetcher.get_pages_content(page_ids=page_ids)
+
+    print(f'Fetcting completed\nNumber of pages: {len(pages)}')
+
+    print("Processing pages...")
+
+    documents, metadatas, empty_pages = html_processor.process_pages(
+        pages, config.KEEP_TAGS)
 
     print(
         f'Processing completed\nNumber of documents: {len(documents)}\nNumber of empty pages: {len(empty_pages)}')
 
     print("Updating ChromaDB...")
-
-    chroma_client = ChromaClient(
-        chroma_host=config.CHROMA_HOST,
-        chroma_port=config.CHROMA_PORT,
-        embedder=embedder
-    )
 
     update_result = chroma_client.update(
         collection_name=config.COLLECTION_NAME,

@@ -3,6 +3,10 @@ from typing import List, Callable, Optional, Dict, Any
 from functools import lru_cache
 import re
 from atlassian import Confluence
+from concurrent.futures import ThreadPoolExecutor
+import os
+import functools
+import time
 
 
 class ConfluenceResolver:
@@ -490,7 +494,7 @@ class DocumentChunker:
         """
         Add the current chunk to the list of chunks and reset it.
 
-        This method processes the current chunk, cleans it, and adds it to 
+        This method processes the current chunk, cleans it, and adds it to
         the chunks list if it contains non-empty content.
         """
         if self.current_chunk.strip():
@@ -507,7 +511,7 @@ class DocumentChunker:
         """
         Add overlap text from previous chunks based on overlap percentage.
 
-        This creates overlapping chunks to improve continuity for downstream 
+        This creates overlapping chunks to improve continuity for downstream
         retrieval tasks, using the overlap percentage set during initialization.
         """
         if self.overlap <= 0 or len(self.chunks) <= 1:
@@ -678,12 +682,12 @@ class HtmlProcessor:
         """
         return self.document_chunker.chunk_document(html)
 
-    def process_pages(self, pages: List[Dict[str, Any]], keep_tags: Optional[set] = None) -> tuple:
+    def process_page(self, page: Dict[str, Any], keep_tags: Optional[set] = None) -> tuple:
         """
-        Process a list of Confluence pages, chunking each page.
+        Process Confluence page, chunking it.
 
         Args:
-            pages: List of page objects from Confluence API
+            page: Page object from Confluence API
             keep_tags: Set of tag names to preserve
 
         Returns:
@@ -696,36 +700,69 @@ class HtmlProcessor:
         metadatas = []
         empty_pages = []
 
-        for page in pages:
-            try:
-                page_id = page.get('id', 'unknown')
+        try:
+            start_time = time.time()
+            page_id = page.get('id', 'unknown')
 
-                html_text = page['body']['storage']['value']
+            html_text = page['body']['storage']['value']
 
-                html_text = self.clean_html(html_text, keep_tags)
-                chunks = self.chunk_document(html_text)
+            html_text = self.clean_html(html_text, keep_tags)
+            chunks = self.chunk_document(html_text)
 
-                if not chunks:
-                    empty_pages.append(page_id)
-                    continue
-
-                page_url = page['_links']['base'] + page['_links']['webui']
-                metadata = [
-                    {
-                        'title': page['title'],
-                        'page_id': page_id,
-                        'page_url': page_url,
-                    } for _ in range(len(chunks))
-                ]
-
-                documents.extend(chunks)
-                metadatas.extend(metadata)
-
-            except Exception as e:
-                page_id = page.get('id', 'unknown')
-                page_title = page.get('title', 'unknown')
+            if not chunks:
                 empty_pages.append(page_id)
-                print(
-                    f"Error processing page {page_id} ({page_title}): {str(e)}")
+                return documents, metadatas, empty_pages
+
+            page_url = page['_links']['base'] + page['_links']['webui']
+            metadata = [
+                {
+                    'title': page['title'],
+                    'page_id': page_id,
+                    'page_url': page_url,
+                } for _ in range(len(chunks))
+            ]
+
+            documents.extend(chunks)
+            metadatas.extend(metadata)
+            print(
+                f"Processing page ({page['title']}):\nchunks number: {len(chunks)}\nduration time: {time.time() - start_time}")
+            print("-"*100)
+
+        except Exception as e:
+            page_id = page.get('id', 'unknown')
+            page_title = page.get('title', 'unknown')
+            empty_pages.append(page_id)
+            print(
+                f"Error processing page {page_id} ({page_title}): {str(e)}")
 
         return documents, metadatas, empty_pages
+
+    def process_pages(self, pages: List[Dict[str, Any]], keep_tags: Optional[set] = None, max_workers: int = 4) -> tuple:
+        """
+        Process a list of Confluence pages, chunking each page.
+
+        Args:
+            pages: List of page objects from Confluence API
+            keep_tags: Set of tag names to preserve
+            max_workers: Maximum number of workers for parallel processing
+
+        Returns:
+            Tuple of (documents, metadatas, empty_pages) where:
+            - documents: List of text chunks from all pages
+            - metadatas: List of metadata dictionaries for each chunk
+            - empty_pages: List of page IDs that couldn't be processed
+        """
+        all_documents = []
+        all_metadatas = []
+        all_empty_pages = []
+
+        with ThreadPoolExecutor(max_workers=min(max_workers, os.cpu_count()+4)) as executor:
+            func = functools.partial(self.process_page, keep_tags=keep_tags)
+            child_results = list(executor.map(func, pages))
+
+        for documents, metadatas, empty_pages in child_results:
+            all_documents.extend(documents)
+            all_metadatas.extend(metadatas)
+            all_empty_pages.extend(empty_pages)
+
+        return all_documents, all_metadatas, all_empty_pages
