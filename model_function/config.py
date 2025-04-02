@@ -1,7 +1,7 @@
 # ChromaDB
 COLLECTION_NAME = "collection_text-embedding-005"
-CHROMA_HOST = "your-chroma-host"
-CHROMA_PORT = 8000
+CHROMA_HOST = ...
+CHROMA_PORT = ...
 RETRIEVAL_RESULTS = 5
 
 # Vertex AI embedding model
