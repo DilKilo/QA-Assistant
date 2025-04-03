@@ -5,6 +5,7 @@ import re
 from atlassian import Confluence
 import time
 import uuid
+import json
 
 
 class ConfluenceResolver:
@@ -267,9 +268,16 @@ class DocumentChunker:
         Returns:
             Token count after processing
         """
+
+        if not html_string or not html_string.strip():
+            return 0
+
         processed_chunk = self.html_cleaner.process_links(html_string)
         processed_chunk["page_content"] = self.html_cleaner.clean_html(
             processed_chunk["page_content"])
+
+        if not processed_chunk["page_content"] or not processed_chunk["page_content"].strip():
+            return 0
 
         return self.token_counter.count_tokens(processed_chunk["page_content"])
 
@@ -775,7 +783,7 @@ class HtmlProcessor:
                         'title': page['title'],
                         'page_id': page_id,
                         'page_url': page_url,
-                        'links': chunk['metadata']
+                        'links': json.dumps(chunk["metadata"], ensure_ascii=False) if chunk["metadata"] else "{}"
                     } for chunk in chunks
                 ]
 
