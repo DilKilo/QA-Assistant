@@ -18,3 +18,14 @@ GENERATION_CONFIG = {
 
 # Vertex AI model
 VERTEXAI_MODEL_NAME = "gemini-1.5-flash"
+
+# Google Cloud Project
+PROJECT_ID = "your-project-id"  # Replace with your actual GCP project ID
+
+# Pub/Sub configuration
+PUBSUB_TOPIC_NAME = "chat-questions"
+PUBSUB_SUBSCRIPTION_NAME = "chat-questions-sub"
+
+# Service account for Google Chat API
+# Replace with your actual service account key path
+SERVICE_ACCOUNT_FILE = "path/to/your/service-account-key.json"
