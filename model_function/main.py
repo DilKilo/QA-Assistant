@@ -1,3 +1,4 @@
+import json
 import base64
 from vertexai.generative_models import GenerativeModel
 from prompting.templates import PromptTemplate, SystemInstructions, SafetySettings
@@ -6,35 +7,91 @@ from embedding.embedder import VertexAIChromaEmbedder
 import functions_framework
 import config
 import logging
+from google.apps import chat_v1 as google_chat
+from utils.google_chat_client import create_client_with_default_credentials
+from typing import Dict, Any
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
 @functions_framework.cloud_event
-def process_query(cloud_event) -> str:
-    """Processes user query using RAG (Retrieval Augmented Generation).
+def chat_app(cloud_event) -> Dict[str, Any]:
+    """
+    Cloud Function handler for Google Chat app events.
+
+    Processes incoming Chat messages via Pub/Sub, retrieves relevant information
+    from a vector database, generates responses using VertexAI, and sends the 
+    responses back to the Chat space.
+
     Args:
-        cloud_event: Cloud event object
+        cloud_event: The CloudEvent containing the Chat message data.
+    Returns:
+        Dict[str, Any]: The response from the Chat API after creating a message.
+    """
+    chat = create_client_with_default_credentials(config.GOOGLE_CHAT_SCOPES)
+
+    message_data = cloud_event.data.get("message").get("data")
+    if not message_data:
+        logger.error("No message data found in cloud event")
+        return {"error": "No message data found"}
+
+    event = json.loads(base64.b64decode(message_data).decode('utf-8'))
+
+    processed_response = "Sorry, I couldn't process your request."
+
+    if event and event.get('type') == 'MESSAGE':
+        query = event.get('message', {}).get('text')
+        if query:
+            processed_response = process_query(query)
+    else:
+        logger.info(f"Ignoring non-MESSAGE event of type: {event.get('type')}")
+        return {"status": "ignored"}
+
+    space_name = event.get('space', {}).get('name')
+    thread_name = event.get('message', {}).get('thread', {}).get('name')
+
+    if not space_name or not thread_name:
+        logger.error(
+            f"Missing space_name or thread_name: space={space_name}, thread={thread_name}")
+        return {"error": "Missing space or thread information"}
+
+    request = google_chat.CreateMessageRequest(
+        parent=space_name,
+        message={
+            'text': processed_response,
+            'thread': {
+                'name': thread_name
+            }
+        }
+    )
+
+    try:
+        chat_response = chat.create_message(request)
+        logger.info(f"Message sent successfully: {chat_response}")
+        return chat_response
+    except Exception as e:
+        logger.error(f"Error sending message: {str(e)}", exc_info=True)
+        return {"error": f"Error sending message: {str(e)}"}
+
+
+def process_query(query: str) -> str:
+    """
+    Processes a user query by retrieving relevant context and generating a response.
+
+    This function handles the core processing logic:
+    1. Embeds the query using VertexAI embeddings
+    2. Retrieves relevant documents from a Chroma vector database
+    3. Formats the context for the LLM prompt
+    4. Generates a response using VertexAI generative models
+
+    Args:
+        query: The user's question or request text
 
     Returns:
-        Generated response text based on retrieved context
+        str: The generated response text, or an error message if processing fails
     """
     try:
-        if isinstance(cloud_event.data, dict) and 'message' in cloud_event.data:
-            message_data = cloud_event.data['message'].get('data', '')
-            if message_data:
-                query = base64.b64decode(message_data).decode('utf-8')
-            else:
-                query = ''
-        else:
-            if isinstance(cloud_event.data, bytes):
-                query = cloud_event.data.decode('utf-8')
-            elif isinstance(cloud_event.data, str):
-                query = cloud_event.data
-            else:
-                query = str(cloud_event.data)
-
         logger.info(f"Processing query: {query}")
 
         embedder = VertexAIChromaEmbedder(

@@ -18,3 +18,7 @@ GENERATION_CONFIG = {
 
 # Vertex AI model
 VERTEXAI_MODEL_NAME = "gemini-1.5-flash"
+
+
+# Google Chat
+GOOGLE_CHAT_SCOPES = ['https://www.googleapis.com/auth/chat.bot']
