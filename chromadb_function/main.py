@@ -69,7 +69,7 @@ def event_handler(cloud_event):
 
     pages = confluence_fetcher.get_pages_content(page_ids=page_ids)
 
-    logger.info(f'Fetcting completed\nNumber of pages: {len(pages)}')
+    logger.info(f'Fetching completed. Number of pages: {len(pages)}')
 
     logger.info("Processing pages...")
 
@@ -77,7 +77,7 @@ def event_handler(cloud_event):
         pages, config.KEEP_TAGS)
 
     logger.info(
-        f'Processing completed\nNumber of documents: {len(documents)}\nNumber of empty pages: {len(empty_pages)}')
+        f'Processing completed. Number of documents: {len(documents)}. Number of empty pages: {len(empty_pages)}')
 
     logger.info("Updating ChromaDB...")
 
