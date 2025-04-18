@@ -1,6 +1,7 @@
-from typing import Dict, List, Any, Optional
+from typing import Dict, Any, Optional
 import chromadb
 import sys
+from embedding.embedder import VertexAIChromaEmbedder
 
 __import__('pysqlite3')
 sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
@@ -19,7 +20,7 @@ class ChromaRetriever:
                  host: str,
                  port: int,
                  collection_name: str,
-                 embedding_function: Any) -> None:
+                 embedding_function: VertexAIChromaEmbedder) -> None:
         """
         Initialize the ChromaRetriever with connection parameters.
 
@@ -91,25 +92,3 @@ class ChromaRetriever:
 
         except Exception as e:
             raise Exception(f"Failed to retrieve documents: {str(e)}")
-
-    def format_context(self, retrieval_result: Dict[str, Any], join_str: str = "\n\n") -> str:
-        """
-        Format retrieved documents into a single context string.
-
-        Args:
-            retrieval_result: Results from the retrieve method
-            join_str: String used to join multiple documents
-
-        Returns:
-            Formatted context string for use in prompts
-        """
-        if not retrieval_result or "documents" not in retrieval_result or not retrieval_result["documents"]:
-            print("No documents for context formatting")
-            return ""
-
-        documents = retrieval_result["documents"][0]
-
-        context = join_str.join(documents)
-        context = context.replace("'", "").replace('"', "")
-
-        return context

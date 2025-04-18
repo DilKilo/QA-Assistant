@@ -1,14 +1,15 @@
-import json
-import base64
-from vertexai.generative_models import GenerativeModel
+from utils.google_chat_client import create_client_with_default_credentials
+from utils.formater import TextFormater
+from vertexai.generative_models import GenerativeModel, GenerationConfig
 from prompting.templates import PromptTemplate, SystemInstructions, SafetySettings
 from retrieval.retriever import ChromaRetriever
 from embedding.embedder import VertexAIChromaEmbedder
+import json
+import base64
 import functions_framework
 import config
 import logging
 from google.apps import chat_v1 as google_chat
-from utils.google_chat_client import create_client_with_default_credentials
 from typing import Dict, Any
 
 logging.basicConfig(level=logging.INFO)
@@ -112,23 +113,36 @@ def process_query(query: str) -> str:
             n_results=config.RETRIEVAL_RESULTS
         )
 
-        context = retriever.format_context(retrieval_result)
+        document_text = TextFormater.format_retrieval_documents(
+            retrieval_result)
 
         model = GenerativeModel(config.VERTEXAI_MODEL_NAME)
-
         system_instruction = SystemInstructions.qa_system_instruction()
-        prompt = PromptTemplate.qa_prompt(query, context, system_instruction)
+
+        prompt = PromptTemplate.qa_prompt(
+            query, document_text, system_instruction)
 
         safety_settings = SafetySettings.standard_settings()
 
+        generative_config = GenerationConfig.from_dict(
+            config.GENERATION_CONFIG)
+
         response = model.generate_content(
             prompt,
-            generation_config=config.GENERATION_CONFIG,
+            generation_config=generative_config,
             safety_settings=safety_settings
         )
 
-        logger.info(f"Generated response for query: {query}\n{response.text}")
-        return response.text
+        generation = json.loads(response.candidates[0].content.parts[0].text)
+        generation_with_grounding = TextFormater.format_grounding_links(
+            generation, retrieval_result["metadatas"])
+
+        result = TextFormater.format_retrieval_text_links(
+            generation_with_grounding["answer"], retrieval_result["metadatas"])
+
+        logger.info(
+            f"Generated response for query: {query}\n{result}")
+        return result
     except Exception as e:
         logger.error(f"Error processing query: {str(e)}", exc_info=True)
         return f"Sorry, an error occurred while processing your request: {str(e)}"

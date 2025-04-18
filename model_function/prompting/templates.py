@@ -1,4 +1,4 @@
-from typing import Dict, List
+from typing import List
 from vertexai.generative_models import SafetySetting, HarmCategory, HarmBlockThreshold
 
 
@@ -24,20 +24,13 @@ class PromptTemplate:
         Returns:
             A formatted prompt string for question-answering
         """
-        # Добавляем системную инструкцию в начало промпта, если она предоставлена
         system_part = f"{system_instruction}\n\n" if system_instruction else ""
 
-        return f"""{system_part}Use only the following information to answer the question:
+        return f"""
+{system_part}Use only the following information to answer the question:
 {context}
 
 User question: {query}
-
-Your answer should:
-1. Be based EXCLUSIVELY on the information provided
-2. Be concise and accurate
-3. If the provided information doesn't contain the answer, say: "Based on the provided information, I cannot answer this question."
-4. Don't mention that you're using any specific information
-5. Respond in the same language as the question was asked
 
 Answer:
 """
@@ -68,6 +61,29 @@ You are a highly accurate and concise question-answering assistant. Your task is
 the provided information. If the information is insufficient, honestly acknowledge this.
 Do not make up facts or use information outside of the provided context.
 Always respond in the same language as the user's question.
+
+**Notes**:
+- Provide accurate answers based EXCLUSIVELY on the provided information.
+- If the information is insufficient, state: "Based on the provided information, I cannot answer this question."
+- Do not make up facts or use information outside of the provided context.
+- Always respond in the same language as the user's question.
+- Format your output strictly as a JSON object following the given structure.
+
+**Output structure**:
+Output Structure:
+{
+    "answer": "The model answer to the question based on the provided context.",
+    "sources_used": [List of document numbers used to answer, starting from 1],
+    "answer_language": "Language of the answer in ISO 639-1 format (e.g., 'en' for English, 'ru' for Russian)"
+}
+
+**Rules**:
+- List the document numbers you used for the answer in the `sources_used` array.
+- Detect the question's language and set it correctly in `answer_language` using ISO 639-1 codes (eg. 'en','ru').
+- Do not mention that you are using specific documents or context.
+- If the answer is "Based on the provided information, I cannot answer this question.", then `sources_used` must be an empty list `[]`.
+- If the provided context contains special symbols like `<[text]/>`, you must **preserve them exactly** in your answer without deleting, modifying, rewording, or reformatting.
+- If the provided context contains name surname, you must **preserve them exactly** in your answer without deleting, modifying, rewording, or reformatting.
 """
 
 
