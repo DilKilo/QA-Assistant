@@ -6,12 +6,10 @@ from fetching.html_processor import HtmlProcessor
 from fetching.confluence_fetcher import ConfluenceFetcher
 from embedding.embedder import VertexAITokenizer, VertexAIChromaEmbedder
 from atlassian import Confluence
+import logging
 
-# TODO:
-# - add looging
-# - add error handling
-# - think about links chunking
-# - think about links embedding
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 
 @functions_framework.cloud_event
@@ -40,7 +38,7 @@ def event_handler(cloud_event):
     embedder = VertexAIChromaEmbedder(
         model_name=config.VERTEXAI_MODEL_NAME,
         task_type=config.VERTEXAI_TASK_TYPE,
-        dimensions=config.VECTOR_DIMENSIONS
+        dimensions=config.VERTEXAI_VECTOR_DIMENSIONS
     )
 
     chroma_client = ChromaClient(
@@ -52,17 +50,17 @@ def event_handler(cloud_event):
     html_processor = HtmlProcessor(
         confluence_client=confluence_client,
         tokenizer=tokenizer,
-        chunk_token_limit=config.VECTOR_DIMENSIONS,
-        overlap=config.OVERLAP
+        chunk_token_limit=config.CHUNK_OVERLAP,
+        overlap=config.CHUNK_SIZE
     )
 
-    print("Starting backup...")
+    logger.info("Starting backup...")
 
     backup_result = backup_client.backup(backups_number=config.BACKUPS_NUMBER)
 
-    print(backup_result['message'])
+    logger.info(backup_result['message'])
 
-    print("Fetching pages...")
+    logger.info("Fetching pages...")
 
     page_ids = confluence_fetcher.get_all_space_pages(
         space=config.CONFLUENCE_SPACE,
@@ -71,17 +69,17 @@ def event_handler(cloud_event):
 
     pages = confluence_fetcher.get_pages_content(page_ids=page_ids)
 
-    print(f'Fetcting completed\nNumber of pages: {len(pages)}')
+    logger.info(f'Fetcting completed\nNumber of pages: {len(pages)}')
 
-    print("Processing pages...")
+    logger.info("Processing pages...")
 
     documents, metadatas, empty_pages = html_processor.process_pages(
         pages, config.KEEP_TAGS)
 
-    print(
+    logger.info(
         f'Processing completed\nNumber of documents: {len(documents)}\nNumber of empty pages: {len(empty_pages)}')
 
-    print("Updating ChromaDB...")
+    logger.info("Updating ChromaDB...")
 
     update_result = chroma_client.update(
         collection_name=config.COLLECTION_NAME,
@@ -89,4 +87,4 @@ def event_handler(cloud_event):
         metadatas=metadatas
     )
 
-    print(update_result['message'])
+    logger.info(update_result['message'])
