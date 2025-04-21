@@ -786,8 +786,12 @@ class HtmlProcessor:
                         'links': json.dumps(chunk["metadata"], ensure_ascii=False) if chunk["metadata"] else "{}"
                     } for chunk in chunks
                 ]
+                document = [{
+                    "page_content": chunk["page_content"],
+                    "title": page['title'],
+                } for chunk in chunks]
 
-                documents.extend(chunk["page_content"] for chunk in chunks)
+                documents.extend(document)
                 metadatas.extend(metadata)
                 duration_times.append(time.time() - start_time)
 

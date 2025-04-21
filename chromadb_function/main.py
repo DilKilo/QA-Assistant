@@ -50,8 +50,8 @@ def event_handler(cloud_event):
     html_processor = HtmlProcessor(
         confluence_client=confluence_client,
         tokenizer=tokenizer,
-        chunk_token_limit=config.CHUNK_OVERLAP,
-        overlap=config.CHUNK_SIZE
+        chunk_token_limit=config.CHUNK_SIZE,
+        overlap=config.CHUNK_OVERLAP
     )
 
     logger.info("Starting backup...")

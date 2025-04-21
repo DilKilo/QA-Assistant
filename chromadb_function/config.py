@@ -4,7 +4,8 @@ import warnings
 warnings.filterwarnings("ignore", category=MarkupResemblesLocatorWarning)
 
 # ChromaDB
-COLLECTION_NAME = "collection_text-embedding-005"
+# COLLECTION_NAME = collection_MODEL-NAME_VECTOR-DIMENSIONS_CHUNK-SIZE
+COLLECTION_NAME = "collection_text-embedding-005_512_512"
 CHROMA_HOST = ...
 CHROMA_PORT = ...
 

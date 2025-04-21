@@ -1,9 +1,9 @@
 from typing import List, Optional, Dict, Any
 from vertexai.language_models import TextEmbeddingInput, TextEmbeddingModel
-from chromadb.api.types import Documents, EmbeddingFunction, Embeddings
+from chromadb.api.types import EmbeddingFunction, Embeddings
 
 
-class VertexAIChromaEmbedder(EmbeddingFunction[Documents]):
+class VertexAIChromaEmbedder(EmbeddingFunction):
     """
     A custom embedding function for ChromaDB using Vertex AI TextEmbeddingModel.
     Follows ChromaDB's EmbeddingFunction interface for better compatibility.
@@ -40,7 +40,7 @@ class VertexAIChromaEmbedder(EmbeddingFunction[Documents]):
         self.batch_size = batch_size
         self.retry_attempts = retry_attempts
 
-    def __call__(self, input: Documents) -> Embeddings:
+    def __call__(self, input: List[Dict[str, Any]]) -> Embeddings:
         """
         Creates embeddings for a list of documents.
         This follows ChromaDB's EmbeddingFunction interface.
@@ -59,7 +59,7 @@ class VertexAIChromaEmbedder(EmbeddingFunction[Documents]):
 
         return all_embeddings
 
-    def _get_embeddings_with_retry(self, texts: List[str]) -> List[List[float]]:
+    def _get_embeddings_with_retry(self, texts: List[Dict[str, Any]]) -> List[List[float]]:
         """
         Gets embeddings with retry support for error handling.
 
@@ -85,7 +85,7 @@ class VertexAIChromaEmbedder(EmbeddingFunction[Documents]):
         raise Exception(
             f"Failed to get embeddings after {self.retry_attempts} attempts: {last_error}")
 
-    def _get_embeddings_batch(self, texts: List[str]) -> List[List[float]]:
+    def _get_embeddings_batch(self, texts: List[Dict[str, Any]]) -> List[List[float]]:
         """
         Creates embeddings for a batch of texts.
 
@@ -96,7 +96,10 @@ class VertexAIChromaEmbedder(EmbeddingFunction[Documents]):
             List of embedding vectors.
         """
         inputs = [TextEmbeddingInput(
-            text=text, task_type=self.task_type) for text in texts]
+            text=text.get("page_content"),
+            task_type=self.task_type,
+            title=text.get("title", "")
+        ) for text in texts]
 
         kwargs: Dict[str, Any] = {}
         if self.dimensions is not None:
