@@ -80,10 +80,15 @@ def event_handler(cloud_event):
         f'Processing completed. Number of documents: {len(documents)}. Number of empty pages: {len(empty_pages)}')
 
     logger.info("Updating ChromaDB...")
+    logger.info("Get embeddings...")
+    embeddings = embedder(documents)
+
+    logger.info("Embeddings done")
 
     update_result = chroma_client.update(
         collection_name=config.COLLECTION_NAME,
         documents=documents,
+        embeddings=embeddings,
         metadatas=metadatas
     )
 

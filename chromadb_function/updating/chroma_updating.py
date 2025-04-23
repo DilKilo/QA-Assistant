@@ -68,13 +68,13 @@ class ChromaClient:
 
         return result
 
-    def update(self, collection_name: str, documents: List[Any],
-               metadatas: Optional[List[Dict[str, Any]]] = None) -> Dict[str, Any]:
+    def update(self, collection_name: str, embeddings: List[Any], documents: List[Any], metadatas: Optional[List[Dict[str, Any]]] = None) -> Dict[str, Any]:
         """
         Update a collection by recreating it with new data.
 
         Args:
             collection_name: Name of the collection to update
+            embeddings: List of embeddings to add to the collection
             documents: List of documents to add to the collection
             metadatas: Optional list of metadata for each document
 
@@ -87,7 +87,8 @@ class ChromaClient:
         }
 
         try:
-            self._validate_inputs(collection_name, documents, metadatas)
+            self._validate_inputs(collection_name, embeddings,
+                                  documents, metadatas)
 
             if self.collection_exists(collection_name):
                 delete_result = self.delete_collection(collection_name)
@@ -100,12 +101,14 @@ class ChromaClient:
                 metadata={"hnsw:space": "cosine"}
             )
 
-            ids = [str(uuid.uuid4()) for _ in range(len(documents))]
+            ids = [str(uuid.uuid4()) for _ in range(len(embeddings))]
 
             collection.add(
                 ids=ids,
-                documents=documents,
-                metadatas=metadatas
+                embeddings=embeddings,
+                metadatas=metadatas,
+                documents=[document.get("page_content")
+                           for document in documents]
             )
 
             result['success'] = True
@@ -119,13 +122,15 @@ class ChromaClient:
 
         return result
 
-    def _validate_inputs(self, collection_name: str, documents: List[Any],
+    def _validate_inputs(self, collection_name: str, embeddings: List[Any],
+                         documents: List[Any],
                          metadatas: Optional[List[Dict[str, Any]]]) -> None:
         """
         Validate input parameters for collection operations.
 
         Args:
             collection_name: Name of the collection
+            embeddings: List of embeddings to add
             documents: List of documents to add
             metadatas: Optional list of metadata for each document
 
@@ -134,10 +139,12 @@ class ChromaClient:
         """
         if not collection_name or not isinstance(collection_name, str):
             raise ValueError("Collection name must be a non-empty string")
-
         if not documents or not isinstance(documents, list):
             raise ValueError("Documents must be a non-empty list")
 
-        if metadatas and len(metadatas) != len(documents):
+        if not embeddings or not isinstance(embeddings, list):
+            raise ValueError("Embeddings must be a non-empty list")
+
+        if metadatas and len(metadatas) != len(embeddings):
             raise ValueError(
-                "Number of metadata items must match number of documents")
+                "Number of metadata items must match number of embeddings")
