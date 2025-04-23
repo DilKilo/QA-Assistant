@@ -35,7 +35,7 @@ class BackupClient:
         """
         try:
             blobs = list(bucket.list_blobs())
-        except Exception as e:
+        except Exception:
             raise
 
         folders: Dict[str, List[storage.Blob]] = {}
@@ -61,7 +61,7 @@ class BackupClient:
         """
         try:
             blobs = list(bucket.list_blobs())
-        except Exception as e:
+        except Exception:
             raise
 
         if not blobs:
@@ -100,7 +100,7 @@ class BackupClient:
             result['message'] = f"Successfully deleted {len(blobs)} blobs with prefix '{folder_name}'"
             return result
 
-        except Exception as e:
+        except Exception:
             raise
 
     def backup(self, backups_number: int) -> Dict[str, Any]:
@@ -168,5 +168,5 @@ class BackupClient:
             result['message'] = f"Successfully backed up {len(source_blobs)} blobs"
             return result
 
-        except Exception as e:
+        except Exception:
             raise
