@@ -1,6 +1,7 @@
-import chromadb
-from typing import List, Dict, Any, Optional, Callable
 import uuid
+from typing import Any, Callable, Dict, List, Optional
+
+import chromadb
 
 
 class ChromaClient:

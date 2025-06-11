@@ -1,11 +1,12 @@
-from bs4 import BeautifulSoup, Tag, NavigableString
-from typing import List, Callable, Optional, Dict, Any, Union
-from functools import lru_cache
+import json
 import re
-from atlassian import Confluence
 import time
 import uuid
-import json
+from functools import lru_cache
+from typing import Any, Callable, Dict, List, Optional, Union
+
+from atlassian import Confluence
+from bs4 import BeautifulSoup, NavigableString, Tag
 
 
 class ConfluenceResolver:

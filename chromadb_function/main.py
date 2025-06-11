@@ -1,12 +1,13 @@
-import functions_framework
-import config
-from backing_up.backing_up import BackupClient
-from updating.chroma_updating import ChromaClient
-from fetching.html_processor import HtmlProcessor
-from fetching.confluence_fetcher import ConfluenceFetcher
-from embedding.embedder import VertexAITokenizer, VertexAIChromaEmbedder
-from atlassian import Confluence
 import logging
+
+import config
+import functions_framework
+from atlassian import Confluence
+from backing_up.backing_up import BackupClient
+from embedding.embedder import VertexAIChromaEmbedder, VertexAITokenizer
+from fetching.confluence_fetcher import ConfluenceFetcher
+from fetching.html_processor import HtmlProcessor
+from updating.chroma_updating import ChromaClient
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

@@ -1,5 +1,7 @@
+from typing import Any, Dict, List, Optional
+
 from google.cloud import storage
-from typing import Optional, Dict, List, Any
+
 from backing_up.utilities import get_current_timestamp
 
 

@@ -1,5 +1,6 @@
 from typing import List
-from vertexai.generative_models import SafetySetting, HarmCategory, HarmBlockThreshold
+
+from vertexai.generative_models import HarmBlockThreshold, HarmCategory, SafetySetting
 
 
 class PromptTemplate:

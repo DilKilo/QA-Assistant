@@ -1,6 +1,7 @@
-from typing import List, Optional, Dict, Any
-from vertexai.language_models import TextEmbeddingInput, TextEmbeddingModel
+from typing import Any, Dict, List, Optional
+
 from chromadb.api.types import EmbeddingFunction, Embeddings
+from vertexai.language_models import TextEmbeddingInput, TextEmbeddingModel
 
 
 class VertexAIChromaEmbedder(EmbeddingFunction):

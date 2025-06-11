@@ -1,7 +1,8 @@
-from typing import List, Set, Dict, Optional, Any
-from atlassian import Confluence
 from concurrent.futures import ThreadPoolExecutor
 from functools import lru_cache
+from typing import Any, Dict, List, Optional, Set
+
+from atlassian import Confluence
 
 
 class ConfluenceFetcher:

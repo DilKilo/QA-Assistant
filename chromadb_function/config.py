@@ -1,6 +1,7 @@
 import os
-from bs4 import MarkupResemblesLocatorWarning
 import warnings
+
+from bs4 import MarkupResemblesLocatorWarning
 
 warnings.filterwarnings("ignore", category=MarkupResemblesLocatorWarning)
 

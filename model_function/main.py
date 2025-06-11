@@ -1,16 +1,17 @@
-from utils.google_chat_client import create_client_with_default_credentials
-from utils.formater import TextFormater
-from vertexai.generative_models import GenerativeModel, GenerationConfig, Content, Part
-from prompting.templates import PromptTemplate, SystemInstructions, SafetySettings
-from retrieval.retriever import ChromaRetriever
-from embedding.embedder import VertexAIChromaEmbedder
-import json
 import base64
-import functions_framework
-import config
+import json
 import logging
+from typing import Any, Dict
+
+import config
+import functions_framework
+from embedding.embedder import VertexAIChromaEmbedder
 from google.apps import chat_v1 as google_chat
-from typing import Dict, Any
+from prompting.templates import PromptTemplate, SafetySettings, SystemInstructions
+from retrieval.retriever import ChromaRetriever
+from utils.formater import TextFormater
+from utils.google_chat_client import create_client_with_default_credentials
+from vertexai.generative_models import Content, GenerationConfig, GenerativeModel, Part
 
 logging.basicConfig(level=logging.INFO)
 

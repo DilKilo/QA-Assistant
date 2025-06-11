@@ -1,5 +1,5 @@
-from typing import Dict, Any, List
 import json
+from typing import Any, Dict, List
 
 
 class TextFormater:

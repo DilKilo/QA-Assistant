@@ -1,6 +1,7 @@
-from typing import Dict, Any, Optional
-import chromadb
 import sys
+from typing import Any, Dict, Optional
+
+import chromadb
 from embedding.embedder import VertexAIChromaEmbedder
 
 __import__("pysqlite3")
