@@ -37,7 +37,8 @@ class ConfluenceResolver:
 
         try:
             page = self.confluence_client.get_page_by_title(
-                space=space_key, title=page_title)
+                space=space_key, title=page_title
+            )
 
             if not page or page["status"] != "current":
                 return page_title, None
@@ -63,15 +64,16 @@ class ConfluenceResolver:
         """
         try:
             user = self.confluence_client.get_user_details_by_accountid(
-                accountid=account_id)
+                accountid=account_id
+            )
 
             if not user:
-                return f'User account_id: {account_id}'
+                return f"User account_id: {account_id}"
 
-            return f'{user["publicName"]}'
+            return f"{user['publicName']}"
         except Exception as e:
             print(f"Error resolving user link: {e}")
-            return f'User account_id: {account_id}'
+            return f"User account_id: {account_id}"
 
 
 class TokenCounter:
@@ -131,15 +133,14 @@ class HtmlCleaner:
                         tag.unwrap()
                 cleaned_html = soup.prettify()
             else:
-                cleaned_html = soup.get_text(separator=' ', strip=True)
-                cleaned_html = re.sub(
-                    r'[\xa0\u200b\t\n\r]+', ' ', cleaned_html)
-                cleaned_html = re.sub(r'\s{2,}', ' ', cleaned_html).strip()
+                cleaned_html = soup.get_text(separator=" ", strip=True)
+                cleaned_html = re.sub(r"[\xa0\u200b\t\n\r]+", " ", cleaned_html)
+                cleaned_html = re.sub(r"\s{2,}", " ", cleaned_html).strip()
 
             return cleaned_html
         except Exception as e:
             print(f"Error cleaning HTML: {e}")
-            return re.sub(r'\s+', ' ', html).strip()
+            return re.sub(r"\s+", " ", html).strip()
 
     def process_links(self, html: str) -> Dict[str, Any]:
         """
@@ -169,25 +170,25 @@ class HtmlCleaner:
             soup: BeautifulSoup object containing the HTML with Confluence links
         """
         metadata = {}
-        for tag in soup.find_all('ac:link'):
+        for tag in soup.find_all("ac:link"):
             try:
                 ripage_tag = tag.find("ri:page")
                 riuser_tag = tag.find("ri:user")
 
                 if ripage_tag:
-                    title = ripage_tag.get('ri:content-title', '')
-                    space_key = ripage_tag.get('ri:space-key', '')
+                    title = ripage_tag.get("ri:content-title", "")
+                    space_key = ripage_tag.get("ri:space-key", "")
                     page_title, page_link = self.confluence_resolver.resolve_page_link(
-                        title, space_key)
+                        title, space_key
+                    )
 
                     metadata[page_title] = page_link
 
-                    replacement = f'<[{page_title}]/>'
+                    replacement = f"<[{page_title}]/>"
 
                 elif riuser_tag:
-                    account_id = riuser_tag.get('ri:account-id', '')
-                    replacement = self.confluence_resolver.resolve_user_link(
-                        account_id)
+                    account_id = riuser_tag.get("ri:account-id", "")
+                    replacement = self.confluence_resolver.resolve_user_link(account_id)
                 else:
                     replacement = tag.get_text()
 
@@ -206,9 +207,9 @@ class HtmlCleaner:
             soup: BeautifulSoup object containing the HTML with standard links
         """
         metadata = {}
-        for tag in soup.find_all('a'):
+        for tag in soup.find_all("a"):
             try:
-                href = tag.get('href', '')
+                href = tag.get("href", "")
                 text = tag.get_text().strip()
 
                 if not text:
@@ -218,7 +219,7 @@ class HtmlCleaner:
                 if text.startswith("http"):
                     text = str(uuid.uuid4())
 
-                replacement = f'<[{text}]/>'
+                replacement = f"<[{text}]/>"
                 tag.replace_with(replacement)
                 metadata[text] = href
             except Exception as e:
@@ -238,7 +239,7 @@ class DocumentChunker:
         html_cleaner: HtmlCleaner,
         token_counter: TokenCounter,
         chunk_token_limit: int = 512,
-        overlap: float = 0.0
+        overlap: float = 0.0,
     ):
         """
         Initialize the DocumentChunker with required components and settings.
@@ -255,7 +256,7 @@ class DocumentChunker:
         self.overlap = min(max(0.0, overlap), 0.5)
 
         self.chunks = []
-        self.current_chunk = {'page_content': '', 'metadata': {}}
+        self.current_chunk = {"page_content": "", "metadata": {}}
         self.last_chunk_content = None
 
     def count_tokens(self, html_string: str) -> int:
@@ -274,9 +275,13 @@ class DocumentChunker:
 
         processed_chunk = self.html_cleaner.process_links(html_string)
         processed_chunk["page_content"] = self.html_cleaner.clean_html(
-            processed_chunk["page_content"])
+            processed_chunk["page_content"]
+        )
 
-        if not processed_chunk["page_content"] or not processed_chunk["page_content"].strip():
+        if (
+            not processed_chunk["page_content"]
+            or not processed_chunk["page_content"].strip()
+        ):
             return 0
 
         return self.token_counter.count_tokens(processed_chunk["page_content"])
@@ -292,16 +297,18 @@ class DocumentChunker:
             List of text chunks
         """
         self.chunks = []
-        self.current_chunk = {'page_content': '', 'metadata': {}}
+        self.current_chunk = {"page_content": "", "metadata": {}}
         self.last_chunk_content = None
 
         try:
             soup = BeautifulSoup(html, "html.parser")
             root = soup.body if soup.body else soup
 
-            elements = [el for el in root.children if not (
-                isinstance(el, NavigableString) and not el.strip()
-            )]
+            elements = [
+                el
+                for el in root.children
+                if not (isinstance(el, NavigableString) and not el.strip())
+            ]
 
             self._process_elements(elements)
             self._finalize_chunk()
@@ -346,10 +353,18 @@ class DocumentChunker:
         Returns:
             True if element is a header tag (h1-h6), False otherwise
         """
-        return (isinstance(element, Tag) and
-                element.name in ["h1", "h2", "h3", "h4", "h5", "h6"])
+        return isinstance(element, Tag) and element.name in [
+            "h1",
+            "h2",
+            "h3",
+            "h4",
+            "h5",
+            "h6",
+        ]
 
-    def _process_header_with_content(self, header: Tag, content: Union[Tag, NavigableString]) -> None:
+    def _process_header_with_content(
+        self, header: Tag, content: Union[Tag, NavigableString]
+    ) -> None:
         """
         Process a header element together with its content.
 
@@ -359,13 +374,19 @@ class DocumentChunker:
         """
         combined_html = str(header) + str(content)
 
-        if self.count_tokens(self.current_chunk["page_content"] + combined_html) <= self.chunk_token_limit:
+        if (
+            self.count_tokens(self.current_chunk["page_content"] + combined_html)
+            <= self.chunk_token_limit
+        ):
             self.current_chunk["page_content"] += combined_html
             return
 
         self._finalize_chunk()
 
-        if self.count_tokens(self.current_chunk["page_content"] + combined_html) <= self.chunk_token_limit:
+        if (
+            self.count_tokens(self.current_chunk["page_content"] + combined_html)
+            <= self.chunk_token_limit
+        ):
             self.current_chunk["page_content"] += combined_html
         else:
             self._split_and_add_content(combined_html)
@@ -379,7 +400,10 @@ class DocumentChunker:
         """
         element_html = str(element)
 
-        if self.count_tokens(self.current_chunk["page_content"] + element_html) <= self.chunk_token_limit:
+        if (
+            self.count_tokens(self.current_chunk["page_content"] + element_html)
+            <= self.chunk_token_limit
+        ):
             self.current_chunk["page_content"] += element_html
         else:
             if self.count_tokens(element_html) > self.chunk_token_limit:
@@ -400,7 +424,10 @@ class DocumentChunker:
         for element in list(soup.children):
             if isinstance(element, Tag):
                 for part in self._split_element(element):
-                    if self.count_tokens(self.current_chunk["page_content"] + part) > self.chunk_token_limit:
+                    if (
+                        self.count_tokens(self.current_chunk["page_content"] + part)
+                        > self.chunk_token_limit
+                    ):
                         self._finalize_chunk()
                     self.current_chunk["page_content"] += part
 
@@ -436,7 +463,7 @@ class DocumentChunker:
         Returns:
             List of text chunks that fit within token limit
         """
-        sentences = re.split(r'(?<=[.!?])\s+', str(text_node))
+        sentences = re.split(r"(?<=[.!?])\s+", str(text_node))
 
         if len(sentences) > 1:
             chunks = []
@@ -464,12 +491,11 @@ class DocumentChunker:
         chunks = []
         current = ""
 
-        average_tokens_per_word = max(
-            1, self.count_tokens(str(text_node)) / len(words))
+        average_tokens_per_word = max(1, self.count_tokens(str(text_node)) / len(words))
         window_size = int(self.chunk_token_limit / average_tokens_per_word)
 
         for i in range(0, len(words), window_size):
-            word_group = words[i:i + window_size]
+            word_group = words[i : i + window_size]
             word_chunk = " ".join(word_group)
 
             if self.count_tokens(word_chunk) <= self.chunk_token_limit:
@@ -536,26 +562,28 @@ class DocumentChunker:
         """
         Add the current chunk to the list of chunks and reset it.
 
-        This method processes the current chunk, cleans it, and adds it to 
+        This method processes the current chunk, cleans it, and adds it to
         the chunks list if it contains non-empty content.
         """
         if self.current_chunk["page_content"].strip():
             self.current_chunk = self.html_cleaner.process_links(
-                self.current_chunk["page_content"])
+                self.current_chunk["page_content"]
+            )
             self.current_chunk["page_content"] = self.html_cleaner.clean_html(
-                self.current_chunk["page_content"])
+                self.current_chunk["page_content"]
+            )
 
             if self.current_chunk["page_content"].strip():
                 self.chunks.append(self.current_chunk)
                 self.last_chunk_content = self.current_chunk["page_content"]
 
-        self.current_chunk = {'page_content': '', 'metadata': {}}
+        self.current_chunk = {"page_content": "", "metadata": {}}
 
         if self.overlap > 0 and self.last_chunk_content:
             overlap_size = int(self.chunk_token_limit * self.overlap)
             if overlap_size > 0:
                 words = self.last_chunk_content.split()
-                overlap_words = words[-min(len(words), overlap_size):]
+                overlap_words = words[-min(len(words), overlap_size) :]
                 overlap_text = " ".join(overlap_words)
 
                 overlap_tokens = self.token_counter.count_tokens(overlap_text)
@@ -563,9 +591,8 @@ class DocumentChunker:
                     self.current_chunk["page_content"] = overlap_text
 
     def _get_sliding_window_chunks(self, text: str) -> List[Dict[str, Any]]:
-
         if not text or self.count_tokens(text) <= self.chunk_token_limit:
-            return [{'page_content': text, 'metadata': {}}]
+            return [{"page_content": text, "metadata": {}}]
 
         words = text.split()
         result_chunks = []
@@ -580,17 +607,21 @@ class DocumentChunker:
         step_size = max(1, step_size)
 
         for i in range(0, len(words), step_size):
-            window_words = words[i:i + window_size]
+            window_words = words[i : i + window_size]
             window_text = " ".join(window_words)
 
-            while self.count_tokens(window_text) > self.chunk_token_limit and len(window_words) > 1:
+            while (
+                self.count_tokens(window_text) > self.chunk_token_limit
+                and len(window_words) > 1
+            ):
                 window_words.pop()
                 window_text = " ".join(window_words)
 
             if window_text.strip():
                 processed_chunk = self.html_cleaner.process_links(window_text)
                 processed_chunk["page_content"] = self.html_cleaner.clean_html(
-                    processed_chunk["page_content"])
+                    processed_chunk["page_content"]
+                )
 
                 if processed_chunk["page_content"].strip():
                     result_chunks.append(processed_chunk)
@@ -609,45 +640,55 @@ class DocumentChunker:
         """
         processed_chunk = self.html_cleaner.process_links(html)
         processed_chunk["page_content"] = self.html_cleaner.clean_html(
-            processed_chunk["page_content"])
+            processed_chunk["page_content"]
+        )
 
         if self.overlap > 0:
             return self._get_sliding_window_chunks(processed_chunk["page_content"])
 
-        paragraphs = re.split(r'\n\s*\n', processed_chunk["page_content"])
+        paragraphs = re.split(r"\n\s*\n", processed_chunk["page_content"])
 
         chunks = []
-        current_chunk = {'page_content': '', 'metadata': {}}
+        current_chunk = {"page_content": "", "metadata": {}}
 
         for paragraph in paragraphs:
             if not paragraph.strip():
                 continue
 
-            if self.count_tokens(current_chunk["page_content"] + paragraph) <= self.chunk_token_limit:
-                current_chunk["page_content"] += " " + \
-                    paragraph if current_chunk["page_content"] else paragraph
+            if (
+                self.count_tokens(current_chunk["page_content"] + paragraph)
+                <= self.chunk_token_limit
+            ):
+                current_chunk["page_content"] += (
+                    " " + paragraph if current_chunk["page_content"] else paragraph
+                )
             else:
                 if current_chunk["page_content"]:
                     chunks.append(current_chunk)
 
                 if self.count_tokens(paragraph) > self.chunk_token_limit:
-                    sentences = re.split(r'(?<=[.!?])\s+', paragraph)
-                    current_chunk = {'page_content': '', 'metadata': {}}
+                    sentences = re.split(r"(?<=[.!?])\s+", paragraph)
+                    current_chunk = {"page_content": "", "metadata": {}}
 
                     for sentence in sentences:
                         if not sentence.strip():
                             continue
 
-                        if self.count_tokens(current_chunk["page_content"] + sentence) <= self.chunk_token_limit:
-                            current_chunk["page_content"] += " " + \
-                                sentence if current_chunk["page_content"] else sentence
+                        if (
+                            self.count_tokens(current_chunk["page_content"] + sentence)
+                            <= self.chunk_token_limit
+                        ):
+                            current_chunk["page_content"] += (
+                                " " + sentence
+                                if current_chunk["page_content"]
+                                else sentence
+                            )
                         else:
                             if current_chunk["page_content"]:
                                 chunks.append(current_chunk)
-                            current_chunk = {
-                                'page_content': sentence, 'metadata': {}}
+                            current_chunk = {"page_content": sentence, "metadata": {}}
                 else:
-                    current_chunk = {'page_content': paragraph, 'metadata': {}}
+                    current_chunk = {"page_content": paragraph, "metadata": {}}
 
         if current_chunk["page_content"]:
             chunks.append(current_chunk)
@@ -666,7 +707,7 @@ class HtmlProcessor:
         confluence_client: Confluence,
         tokenizer: Callable[[str], int],
         chunk_token_limit: int = 512,
-        overlap: float = 0.0
+        overlap: float = 0.0,
     ):
         """
         Initialize HtmlProcessor with component dependencies.
@@ -681,10 +722,7 @@ class HtmlProcessor:
         self.token_counter = TokenCounter(tokenizer)
         self.html_cleaner = HtmlCleaner(self.confluence_resolver)
         self.document_chunker = DocumentChunker(
-            self.html_cleaner,
-            self.token_counter,
-            chunk_token_limit,
-            overlap
+            self.html_cleaner, self.token_counter, chunk_token_limit, overlap
         )
 
     def clean_html(self, html: str, keep_tags: Optional[set] = None) -> str:
@@ -737,7 +775,9 @@ class HtmlProcessor:
         """
         return self.document_chunker.chunk_document(html)
 
-    def process_pages(self, pages: List[Dict[str, Any]], keep_tags: Optional[set] = None) -> tuple:
+    def process_pages(
+        self, pages: List[Dict[str, Any]], keep_tags: Optional[set] = None
+    ) -> tuple:
         """
         Process a list of Confluence pages, chunking each page.
 
@@ -760,15 +800,17 @@ class HtmlProcessor:
 
         for idx, page in enumerate(pages):
             try:
-                average_duration_time = sum(
-                    duration_times) / len(duration_times) if duration_times else 0
+                average_duration_time = (
+                    sum(duration_times) / len(duration_times) if duration_times else 0
+                )
                 print(
-                    f'Processing page: {idx}/{number_pages}\nAverage duration time: {average_duration_time}')
+                    f"Processing page: {idx}/{number_pages}\nAverage duration time: {average_duration_time}"
+                )
 
                 start_time = time.time()
-                page_id = page.get('id', 'unknown')
+                page_id = page.get("id", "unknown")
 
-                html_text = page['body']['storage']['value']
+                html_text = page["body"]["storage"]["value"]
 
                 html_text = self.clean_html(html_text, keep_tags)
                 chunks = self.chunk_document(html_text)
@@ -777,29 +819,34 @@ class HtmlProcessor:
                     empty_pages.append(page_id)
                     continue
 
-                page_url = page['_links']['base'] + page['_links']['webui']
+                page_url = page["_links"]["base"] + page["_links"]["webui"]
                 metadata = [
                     {
-                        'title': page['title'],
-                        'page_id': page_id,
-                        'page_url': page_url,
-                        'links': json.dumps(chunk["metadata"], ensure_ascii=False) if chunk["metadata"] else "{}"
-                    } for chunk in chunks
+                        "title": page["title"],
+                        "page_id": page_id,
+                        "page_url": page_url,
+                        "links": json.dumps(chunk["metadata"], ensure_ascii=False)
+                        if chunk["metadata"]
+                        else "{}",
+                    }
+                    for chunk in chunks
                 ]
-                document = [{
-                    "page_content": chunk["page_content"],
-                    "title": page['title'],
-                } for chunk in chunks]
+                document = [
+                    {
+                        "page_content": chunk["page_content"],
+                        "title": page["title"],
+                    }
+                    for chunk in chunks
+                ]
 
                 documents.extend(document)
                 metadatas.extend(metadata)
                 duration_times.append(time.time() - start_time)
 
             except Exception as e:
-                page_id = page.get('id', 'unknown')
-                page_title = page.get('title', 'unknown')
+                page_id = page.get("id", "unknown")
+                page_title = page.get("title", "unknown")
                 empty_pages.append(page_id)
-                print(
-                    f"Error processing page {page_id} ({page_title}): {str(e)}")
+                print(f"Error processing page {page_id} ({page_title}): {str(e)}")
 
         return documents, metadatas, empty_pages

@@ -3,8 +3,8 @@ import chromadb
 import sys
 from embedding.embedder import VertexAIChromaEmbedder
 
-__import__('pysqlite3')
-sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
+__import__("pysqlite3")
+sys.modules["sqlite3"] = sys.modules.pop("pysqlite3")
 
 
 class ChromaRetriever:
@@ -16,11 +16,13 @@ class ChromaRetriever:
     in RAG (Retrieval Augmented Generation) systems.
     """
 
-    def __init__(self,
-                 host: str,
-                 port: int,
-                 collection_name: str,
-                 embedding_function: VertexAIChromaEmbedder) -> None:
+    def __init__(
+        self,
+        host: str,
+        port: int,
+        collection_name: str,
+        embedding_function: VertexAIChromaEmbedder,
+    ) -> None:
         """
         Initialize the ChromaRetriever with connection parameters.
 
@@ -44,25 +46,22 @@ class ChromaRetriever:
         Establish connection to ChromaDB and retrieve the specified collection.
         """
         try:
-            self.client = chromadb.HttpClient(
-                host=self.host,
-                port=self.port
-            )
+            self.client = chromadb.HttpClient(host=self.host, port=self.port)
 
             self.collection = self.client.get_collection(
-                name=self.collection_name,
-                embedding_function=self.embedding_function
+                name=self.collection_name, embedding_function=self.embedding_function
             )
 
         except Exception as e:
-            raise ConnectionError(
-                f"Failed to connect to ChromaDB: {str(e)}")
+            raise ConnectionError(f"Failed to connect to ChromaDB: {str(e)}")
 
-    def retrieve(self,
-                 query: str,
-                 n_results: int = 5,
-                 where: Optional[Dict[str, Any]] = None,
-                 where_document: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    def retrieve(
+        self,
+        query: str,
+        n_results: int = 5,
+        where: Optional[Dict[str, Any]] = None,
+        where_document: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
         """
         Retrieve relevant documents from ChromaDB based on the query.
 
@@ -76,10 +75,7 @@ class ChromaRetriever:
             Dictionary containing query results from ChromaDB
         """
         try:
-            query_params = {
-                "query_texts": [query],
-                "n_results": n_results
-            }
+            query_params = {"query_texts": [query], "n_results": n_results}
 
             if where:
                 query_params["where"] = where

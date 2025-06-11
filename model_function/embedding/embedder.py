@@ -15,7 +15,7 @@ class VertexAIChromaEmbedder(EmbeddingFunction[Documents]):
         task_type: str,
         dimensions: Optional[int] = None,
         batch_size: int = 5,
-        retry_attempts: int = 3
+        retry_attempts: int = 3,
     ) -> None:
         """
         Initializes the embedder based on Vertex AI.
@@ -29,7 +29,7 @@ class VertexAIChromaEmbedder(EmbeddingFunction[Documents]):
                 - "SEMANTIC_SIMILARITY": for semantic similarity tasks
                 - "CLASSIFICATION": for classification tasks
                 - "CLUSTERING": for clustering tasks
-            dimensions: Target dimensionality of output embeddings. If None, 
+            dimensions: Target dimensionality of output embeddings. If None,
                        the model's default dimensionality is used.
             batch_size: Batch size for processing texts.
             retry_attempts: Number of retry attempts for API errors.
@@ -53,7 +53,7 @@ class VertexAIChromaEmbedder(EmbeddingFunction[Documents]):
         """
         all_embeddings = []
         for i in range(0, len(input), self.batch_size):
-            batch_texts = input[i:i + self.batch_size]
+            batch_texts = input[i : i + self.batch_size]
             batch_embeddings = self._get_embeddings_with_retry(batch_texts)
             all_embeddings.extend(batch_embeddings)
 
@@ -83,7 +83,8 @@ class VertexAIChromaEmbedder(EmbeddingFunction[Documents]):
                 last_error = e
 
         raise Exception(
-            f"Failed to get embeddings after {self.retry_attempts} attempts: {last_error}")
+            f"Failed to get embeddings after {self.retry_attempts} attempts: {last_error}"
+        )
 
     def _get_embeddings_batch(self, texts: List[str]) -> List[List[float]]:
         """
@@ -95,8 +96,9 @@ class VertexAIChromaEmbedder(EmbeddingFunction[Documents]):
         Returns:
             List of embedding vectors.
         """
-        inputs = [TextEmbeddingInput(
-            text=text, task_type=self.task_type) for text in texts]
+        inputs = [
+            TextEmbeddingInput(text=text, task_type=self.task_type) for text in texts
+        ]
 
         kwargs: Dict[str, Any] = {}
         if self.dimensions is not None:

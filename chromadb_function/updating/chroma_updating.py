@@ -17,10 +17,7 @@ class ChromaClient:
             chroma_port: Port number of the ChromaDB server
             embedder: Function to use for generating embeddings
         """
-        self.chroma_client = chromadb.HttpClient(
-            host=chroma_host,
-            port=chroma_port
-        )
+        self.chroma_client = chromadb.HttpClient(host=chroma_host, port=chroma_port)
         self.embedder = embedder
 
     def collection_exists(self, collection_name: str) -> bool:
@@ -46,29 +43,32 @@ class ChromaClient:
         Returns:
             Dictionary containing success status and message
         """
-        result = {
-            'success': False,
-            'message': ''
-        }
+        result = {"success": False, "message": ""}
 
         try:
             if not self.collection_exists(collection_name):
-                result['success'] = True
-                result['message'] = f"Collection '{collection_name}' does not exist."
+                result["success"] = True
+                result["message"] = f"Collection '{collection_name}' does not exist."
                 return result
 
             self.chroma_client.delete_collection(name=collection_name)
-            result['success'] = True
-            result['message'] = f"Collection '{collection_name}' successfully deleted."
+            result["success"] = True
+            result["message"] = f"Collection '{collection_name}' successfully deleted."
 
         except ValueError as e:
-            result['message'] = f"Validation error: {str(e)}"
+            result["message"] = f"Validation error: {str(e)}"
         except Exception as e:
-            result['message'] = f"Unexpected error: {str(e)}"
+            result["message"] = f"Unexpected error: {str(e)}"
 
         return result
 
-    def update(self, collection_name: str, embeddings: List[Any], documents: List[Any], metadatas: Optional[List[Dict[str, Any]]] = None) -> Dict[str, Any]:
+    def update(
+        self,
+        collection_name: str,
+        embeddings: List[Any],
+        documents: List[Any],
+        metadatas: Optional[List[Dict[str, Any]]] = None,
+    ) -> Dict[str, Any]:
         """
         Update a collection by recreating it with new data.
 
@@ -81,24 +81,20 @@ class ChromaClient:
         Returns:
             Dictionary containing success status and message
         """
-        result = {
-            'success': False,
-            'message': ''
-        }
+        result = {"success": False, "message": ""}
 
         try:
-            self._validate_inputs(collection_name, embeddings,
-                                  documents, metadatas)
+            self._validate_inputs(collection_name, embeddings, documents, metadatas)
 
             if self.collection_exists(collection_name):
                 delete_result = self.delete_collection(collection_name)
-                if not delete_result['success']:
+                if not delete_result["success"]:
                     return delete_result
 
             collection = self.chroma_client.create_collection(
                 name=collection_name,
                 embedding_function=self.embedder,
-                metadata={"hnsw:space": "cosine"}
+                metadata={"hnsw:space": "cosine"},
             )
 
             ids = [str(uuid.uuid4()) for _ in range(len(embeddings))]
@@ -107,24 +103,28 @@ class ChromaClient:
                 ids=ids,
                 embeddings=embeddings,
                 metadatas=metadatas,
-                documents=[document.get("page_content")
-                           for document in documents]
+                documents=[document.get("page_content") for document in documents],
             )
 
-            result['success'] = True
-            result[
-                'message'] = f"Collection '{collection_name}' successfully updated with {len(documents)} documents."
+            result["success"] = True
+            result["message"] = (
+                f"Collection '{collection_name}' successfully updated with {len(documents)} documents."
+            )
 
         except ValueError as e:
-            result['message'] = f"Validation error: {str(e)}"
+            result["message"] = f"Validation error: {str(e)}"
         except Exception as e:
-            result['message'] = f"Unexpected error: {str(e)}"
+            result["message"] = f"Unexpected error: {str(e)}"
 
         return result
 
-    def _validate_inputs(self, collection_name: str, embeddings: List[Any],
-                         documents: List[Any],
-                         metadatas: Optional[List[Dict[str, Any]]]) -> None:
+    def _validate_inputs(
+        self,
+        collection_name: str,
+        embeddings: List[Any],
+        documents: List[Any],
+        metadatas: Optional[List[Dict[str, Any]]],
+    ) -> None:
         """
         Validate input parameters for collection operations.
 
@@ -146,5 +146,4 @@ class ChromaClient:
             raise ValueError("Embeddings must be a non-empty list")
 
         if metadatas and len(metadatas) != len(embeddings):
-            raise ValueError(
-                "Number of metadata items must match number of embeddings")
+            raise ValueError("Number of metadata items must match number of embeddings")

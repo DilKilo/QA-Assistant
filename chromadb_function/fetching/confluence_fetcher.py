@@ -24,7 +24,9 @@ class ConfluenceFetcher:
         self.max_workers = max_workers
 
     @lru_cache(maxsize=128)
-    def get_page_children(self, page_id: str, batch_size: int = 100) -> List[Dict[str, Any]]:
+    def get_page_children(
+        self, page_id: str, batch_size: int = 100
+    ) -> List[Dict[str, Any]]:
         """
         Get all child pages of a given page with caching.
 
@@ -41,7 +43,8 @@ class ConfluenceFetcher:
 
             while True:
                 batch = self.confluence.get_page_child_by_type(
-                    page_id, type="page", start=start, limit=batch_size)
+                    page_id, type="page", start=start, limit=batch_size
+                )
 
                 if not batch:
                     break
@@ -54,8 +57,7 @@ class ConfluenceFetcher:
 
             return children
         except Exception as e:
-            print(
-                f"Error fetching children of page {page_id}: {e}")
+            print(f"Error fetching children of page {page_id}: {e}")
             raise
 
     def get_page_tree(self, root_id: str) -> Set[str]:
@@ -74,15 +76,16 @@ class ConfluenceFetcher:
         queue = [root_id]
 
         while queue:
-            current_batch = queue[:min(len(queue), self.max_workers * 2)]
-            queue = queue[len(current_batch):]
+            current_batch = queue[: min(len(queue), self.max_workers * 2)]
+            queue = queue[len(current_batch) :]
 
             with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
-                child_results = list(executor.map(
-                    self.get_page_children, current_batch))
+                child_results = list(
+                    executor.map(self.get_page_children, current_batch)
+                )
 
             for children in child_results:
-                child_ids = [child['id'] for child in children]
+                child_ids = [child["id"] for child in children]
                 queue.extend(child_ids)
                 result.update(child_ids)
 
@@ -110,8 +113,12 @@ class ConfluenceFetcher:
 
         return result
 
-    def get_all_space_pages(self, space: str, exclude_roots: Optional[List[str]] = None,
-                            batch_size: int = 100) -> List[str]:
+    def get_all_space_pages(
+        self,
+        space: str,
+        exclude_roots: Optional[List[str]] = None,
+        batch_size: int = 100,
+    ) -> List[str]:
         """
         Get all page IDs from a space, with optional exclusions.
 
@@ -130,8 +137,12 @@ class ConfluenceFetcher:
         while True:
             try:
                 batch = self.confluence.get_all_pages_from_space(
-                    space=space, start=start, limit=batch_size,
-                    status="current", expand=None)
+                    space=space,
+                    start=start,
+                    limit=batch_size,
+                    status="current",
+                    expand=None,
+                )
 
                 if not batch:
                     break
@@ -143,12 +154,10 @@ class ConfluenceFetcher:
                     break
 
             except Exception as e:
-                print(
-                    f"Error fetching pages from space {space}: {e}")
+                print(f"Error fetching pages from space {space}: {e}")
                 raise
 
-        page_ids = {page['id']
-                    for page in all_pages if page.get('status') == 'current'}
+        page_ids = {page["id"] for page in all_pages if page.get("status") == "current"}
 
         if exclude_roots:
             excluded_ids = self.get_excluded_pages(exclude_roots)
@@ -175,7 +184,7 @@ class ConfluenceFetcher:
                     executor.submit(
                         self.confluence.get_page_by_id,
                         page_id=page_id,
-                        expand="body.storage"
+                        expand="body.storage",
                     )
                 )
 

@@ -14,19 +14,19 @@ _RESPONSE_SCHEMA = {
     "properties": {
         "answer": {
             "type": "string",
-            "description": "The model answer to the question based on the provided context."
+            "description": "The model answer to the question based on the provided context.",
         },
         "sources_used": {
             "type": "array",
             "items": {"type": "integer"},
-            "description": "The list of document numbers used to answer the question, starting from 1."
+            "description": "The list of document numbers used to answer the question, starting from 1.",
         },
         "answer_language": {
             "type": "string",
-            "description": "The language of the answer in ISO 639-1 format."
-        }
+            "description": "The language of the answer in ISO 639-1 format.",
+        },
     },
-    "required": ["answer", "sources_used", "answer_language"]
+    "required": ["answer", "sources_used", "answer_language"],
 }
 
 GENERATION_CONFIG = {
@@ -41,4 +41,4 @@ VERTEXAI_MODEL_NAME = "gemini-1.5-flash"
 
 
 # Google Chat
-GOOGLE_CHAT_SCOPES = ['https://www.googleapis.com/auth/chat.bot']
+GOOGLE_CHAT_SCOPES = ["https://www.googleapis.com/auth/chat.bot"]

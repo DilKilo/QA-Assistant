@@ -1,6 +1,6 @@
 from utils.google_chat_client import create_client_with_default_credentials
 from utils.formater import TextFormater
-from vertexai.generative_models import GenerativeModel, GenerationConfig
+from vertexai.generative_models import GenerativeModel, GenerationConfig, Content, Part
 from prompting.templates import PromptTemplate, SystemInstructions, SafetySettings
 from retrieval.retriever import ChromaRetriever
 from embedding.embedder import VertexAIChromaEmbedder
@@ -13,6 +13,7 @@ from google.apps import chat_v1 as google_chat
 from typing import Dict, Any
 
 logging.basicConfig(level=logging.INFO)
+
 logger = logging.getLogger(__name__)
 
 
@@ -22,7 +23,7 @@ def chat_app(cloud_event) -> Dict[str, Any]:
     Cloud Function handler for Google Chat app events.
 
     Processes incoming Chat messages via Pub/Sub, retrieves relevant information
-    from a vector database, generates responses using VertexAI, and sends the 
+    from a vector database, generates responses using VertexAI, and sends the
     responses back to the Chat space.
 
     Args:
@@ -37,34 +38,30 @@ def chat_app(cloud_event) -> Dict[str, Any]:
         logger.error("No message data found in cloud event")
         return {"error": "No message data found"}
 
-    event = json.loads(base64.b64decode(message_data).decode('utf-8'))
+    event = json.loads(base64.b64decode(message_data).decode("utf-8"))
 
     processed_response = "Sorry, I couldn't process your request."
 
-    if event and event.get('type') == 'MESSAGE':
-        query = event.get('message', {}).get('text')
+    if event and event.get("type") == "MESSAGE":
+        query = event.get("message", {}).get("text")
         if query:
             processed_response = process_query(query)
     else:
         logger.info(f"Ignoring non-MESSAGE event of type: {event.get('type')}")
         return {"status": "ignored"}
 
-    space_name = event.get('space', {}).get('name')
-    thread_name = event.get('message', {}).get('thread', {}).get('name')
+    space_name = event.get("space", {}).get("name")
+    thread_name = event.get("message", {}).get("thread", {}).get("name")
 
     if not space_name or not thread_name:
         logger.error(
-            f"Missing space_name or thread_name: space={space_name}, thread={thread_name}")
+            f"Missing space_name or thread_name: space={space_name}, thread={thread_name}"
+        )
         return {"error": "Missing space or thread information"}
 
     request = google_chat.CreateMessageRequest(
         parent=space_name,
-        message={
-            'text': processed_response,
-            'thread': {
-                'name': thread_name
-            }
-        }
+        message={"text": processed_response, "thread": {"name": thread_name}},
     )
 
     try:
@@ -98,50 +95,52 @@ def process_query(query: str) -> str:
         embedder = VertexAIChromaEmbedder(
             model_name=config.VERTEXAI_MODEL_EMBEDDING_NAME,
             task_type=config.VERTEXAI_TASK_TYPE,
-            dimensions=config.VECTOR_DIMENSIONS
+            dimensions=config.VECTOR_DIMENSIONS,
         )
 
         retriever = ChromaRetriever(
             host=config.CHROMA_HOST,
             port=config.CHROMA_PORT,
             collection_name=config.COLLECTION_NAME,
-            embedding_function=embedder
+            embedding_function=embedder,
         )
 
         retrieval_result = retriever.retrieve(
-            query=query,
-            n_results=config.RETRIEVAL_RESULTS
+            query=query, n_results=config.RETRIEVAL_RESULTS
         )
 
-        document_text = TextFormater.format_retrieval_documents(
-            retrieval_result)
-
-        model = GenerativeModel(config.VERTEXAI_MODEL_NAME)
+        document_text = TextFormater.format_retrieval_documents(retrieval_result)
         system_instruction = SystemInstructions.qa_system_instruction()
 
-        prompt = PromptTemplate.qa_prompt(
-            query, document_text, system_instruction)
+        user_prompt = PromptTemplate.qa_prompt(query, document_text)
+        content_user = Content(role="user", parts=[Part.from_text(user_prompt)])
+        part_system = Part.from_text(system_instruction)
+
+        model = GenerativeModel(
+            model_name=config.VERTEXAI_MODEL_NAME,
+            system_instruction=part_system,
+        )
 
         safety_settings = SafetySettings.standard_settings()
 
-        generative_config = GenerationConfig.from_dict(
-            config.GENERATION_CONFIG)
+        generative_config = GenerationConfig.from_dict(config.GENERATION_CONFIG)
 
         response = model.generate_content(
-            prompt,
+            contents=[content_user],
             generation_config=generative_config,
-            safety_settings=safety_settings
+            safety_settings=safety_settings,
         )
 
         generation = json.loads(response.candidates[0].content.parts[0].text)
         generation_with_grounding = TextFormater.format_grounding_links(
-            generation, retrieval_result["metadatas"])
+            generation, retrieval_result["metadatas"]
+        )
 
         result = TextFormater.format_retrieval_text_links(
-            generation_with_grounding["answer"], retrieval_result["metadatas"])
+            generation_with_grounding["answer"], retrieval_result["metadatas"]
+        )
 
-        logger.info(
-            f"Generated response for query: {query}\n{result}")
+        logger.info(f"Generated response for query: {query}\n{result}")
         return result
     except Exception as e:
         logger.error(f"Error processing query: {str(e)}", exc_info=True)
