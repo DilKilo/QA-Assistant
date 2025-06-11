@@ -22,7 +22,7 @@ wheels/
 *.egg
 
 # Virtual environments
-venv/
+.venv/
 
 # Potential sensitive information
 .env
@@ -33,6 +33,6 @@ notebooks/
 *.ipynb
 .ipynb_checkpoints
 
-# Cursor
-.cursorignore
+#linter
+.ruff_cache/
 
